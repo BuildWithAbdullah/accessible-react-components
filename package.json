@@ -1,0 +1,29 @@
+{
+  "name": "accessible-react-components",
+  "version": "1.0.0",
+  "description": "Accessible React and TypeScript components with their keyboard behaviour tested rather than described.",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18.18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/roving.test.mjs test/focusable.test.mjs test/live.test.mjs test/name.test.mjs test/dialog.test.mjs test/disclosure.test.mjs test/tabs.test.mjs test/combobox.test.mjs test/menu-button.test.mjs test/toast.test.mjs test/pairs.test.mjs",
+    "verify": "npm run build && node tools/verify.mjs",
+    "check": "npm test && npm run verify"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "jsdom": "^25.0.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^5.9.3"
+  }
+}
