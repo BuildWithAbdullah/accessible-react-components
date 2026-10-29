@@ -22,12 +22,12 @@ export default [
     async run(ctx) {
       await ctx.click(ctx.trigger());
       const dialog = ctx.maybe('[role="dialog"]');
-      if (!dialog) ctx.fail('opening the widget produced no element with role="dialog"');
+      if (!dialog) ctx.fail('DLG-NO-DIALOG-ROLE', 'opening the widget produced no element with role="dialog"');
       if (dialog.getAttribute('aria-modal') !== 'true') {
-        ctx.fail('the dialog does not carry aria-modal="true"');
+        ctx.fail('DLG-NOT-MODAL', 'the dialog does not carry aria-modal="true"');
       }
       const label = ctx.name(dialog);
-      if (!label) ctx.fail('the dialog has no accessible name');
+      if (!label) ctx.fail('NAME-ABSENT', 'the dialog has no accessible name');
     },
   },
   {
@@ -46,6 +46,7 @@ export default [
       const panel = ctx.q(ctx.fixture.panel, 'the dialog panel');
       if (!ctx.contains(panel, ctx.active())) {
         ctx.fail(
+          'DLG-FOCUS-NOT-MOVED-IN',
           `after opening, focus is on ${ctx.describe(ctx.active())}, which is outside the dialog panel`,
         );
       }
@@ -65,26 +66,40 @@ export default [
       await ctx.click(ctx.trigger());
       const panel = ctx.q(ctx.fixture.panel, 'the dialog panel');
       const inside = tabbables(panel);
-      if (inside.length === 0) ctx.fail('the dialog has nothing tabbable inside it');
+      if (inside.length === 0) {
+        ctx.fail('DLG-NOTHING-TABBABLE', 'the dialog has nothing tabbable inside it');
+      }
 
       const last = inside[inside.length - 1];
       await ctx.focus(last);
       const forward = await ctx.press(last, 'Tab');
       if (!forward.defaultPrevented) {
-        ctx.fail('Tab on the last control in the dialog was not handled, so focus leaves the dialog');
+        ctx.fail(
+          'DLG-TAB-NOT-CLAIMED-FORWARD',
+          'Tab on the last control in the dialog was not handled, so focus leaves the dialog',
+        );
       }
       if (!ctx.contains(panel, ctx.active())) {
-        ctx.fail(`Tab moved focus to ${ctx.describe(ctx.active())}, outside the dialog`);
+        ctx.fail(
+          'DLG-TAB-ESCAPES-FORWARD',
+          `Tab moved focus to ${ctx.describe(ctx.active())}, outside the dialog`,
+        );
       }
 
       const first = inside[0];
       await ctx.focus(first);
       const back = await ctx.press(first, 'Tab', { shift: true });
       if (!back.defaultPrevented) {
-        ctx.fail('Shift+Tab on the first control in the dialog was not handled');
+        ctx.fail(
+          'DLG-TAB-NOT-CLAIMED-BACKWARD',
+          'Shift+Tab on the first control in the dialog was not handled',
+        );
       }
       if (!ctx.contains(panel, ctx.active())) {
-        ctx.fail(`Shift+Tab moved focus to ${ctx.describe(ctx.active())}, outside the dialog`);
+        ctx.fail(
+          'DLG-TAB-ESCAPES-BACKWARD',
+          `Shift+Tab moved focus to ${ctx.describe(ctx.active())}, outside the dialog`,
+        );
       }
     },
   },
@@ -101,7 +116,9 @@ export default [
       await ctx.click(ctx.trigger());
       const panel = ctx.q(ctx.fixture.panel, 'the dialog panel');
       await ctx.press(ctx.active() ?? panel, 'Escape');
-      if (ctx.maybe(ctx.fixture.panel)) ctx.fail('Escape did not close the dialog');
+      if (ctx.maybe(ctx.fixture.panel)) {
+        ctx.fail('DLG-ESCAPE-DEAD', 'Escape did not close the dialog');
+      }
     },
   },
   {
@@ -117,12 +134,15 @@ export default [
       await ctx.click(trigger);
       const panel = ctx.q(ctx.fixture.panel, 'the dialog panel');
       const inside = tabbables(panel);
-      if (inside.length === 0) ctx.fail('the dialog has nothing tabbable inside it');
+      if (inside.length === 0) {
+        ctx.fail('DLG-NOTHING-TABBABLE', 'the dialog has nothing tabbable inside it');
+      }
       await ctx.focus(inside[0]);
       const close = ctx.q(ctx.fixture.close, 'the close control');
       await ctx.click(close);
       if (ctx.active() !== trigger) {
         ctx.fail(
+          'DLG-FOCUS-NOT-RESTORED',
           `after closing, focus is on ${ctx.describe(ctx.active())} rather than on the control that opened the dialog`,
         );
       }
@@ -142,10 +162,11 @@ export default [
       const close = ctx.q(ctx.fixture.close, 'the close control');
       if (close.tagName !== 'BUTTON') {
         ctx.fail(
+          'DLG-CLOSE-NOT-A-BUTTON',
           `the close control is ${ctx.describe(close)}, not a button, so it is neither tabbable nor keyboard activatable`,
         );
       }
-      if (!ctx.name(close)) ctx.fail('the close control has no accessible name');
+      if (!ctx.name(close)) ctx.fail('NAME-ABSENT', 'the close control has no accessible name');
     },
   },
 ];

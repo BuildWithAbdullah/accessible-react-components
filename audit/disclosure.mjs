@@ -18,6 +18,7 @@ export default [
       const role = trigger.getAttribute('role');
       const tabindex = trigger.getAttribute('tabindex');
       ctx.fail(
+        'DSC-TRIGGER-NOT-A-BUTTON',
         `the trigger is ${ctx.describe(trigger)} with role=${role ?? 'none'} and tabindex=${tabindex ?? 'none'}, so it is not a button and does not stand in for one`,
       );
     },
@@ -33,14 +34,20 @@ export default [
       const trigger = ctx.q(ctx.fixture.trigger, 'the disclosure trigger');
       const before = trigger.getAttribute('aria-expanded');
       if (before !== 'false') {
-        ctx.fail(`collapsed, the trigger reports aria-expanded=${before ?? 'nothing at all'}`);
+        ctx.fail(
+          'DSC-COLLAPSED-STATE-NOT-EXPOSED',
+          `collapsed, the trigger reports aria-expanded=${before ?? 'nothing at all'}`,
+        );
       }
       await ctx.click(trigger);
       const after = ctx
         .q(ctx.fixture.trigger, 'the disclosure trigger')
         .getAttribute('aria-expanded');
       if (after !== 'true') {
-        ctx.fail(`expanded, the trigger reports aria-expanded=${after ?? 'nothing at all'}`);
+        ctx.fail(
+          'DSC-EXPANDED-STATE-NOT-UPDATED',
+          `expanded, the trigger reports aria-expanded=${after ?? 'nothing at all'}`,
+        );
       }
     },
   },
@@ -71,6 +78,7 @@ export default [
       const reachable = tabbables(region);
       if (reachable.length > 0) {
         ctx.fail(
+          'DSC-COLLAPSED-REGION-TABBABLE',
           `while collapsed, ${reachable.length} control(s) inside the region are still tabbable, starting with ${ctx.describe(reachable[0])}`,
         );
       }

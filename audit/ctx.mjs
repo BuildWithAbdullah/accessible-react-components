@@ -14,7 +14,12 @@ export function makeContext({ act, win, host, fixture }) {
 
   const q = (selector, what = selector) => {
     const el = host.querySelector(selector);
-    if (!el) fail(`expected to find ${what} matching ${selector}, found nothing`);
+    if (!el) {
+      fail(
+        'STRUCT-PART-MISSING',
+        `expected to find ${what} matching ${selector}, found nothing`,
+      );
+    }
     return el;
   };
 
@@ -90,7 +95,7 @@ export function makeContext({ act, win, host, fixture }) {
         win.HTMLInputElement.prototype,
         'value',
       )?.set;
-      if (!setter) fail('this DOM has no value setter on HTMLInputElement');
+      if (!setter) throw new Error('this DOM has no value setter on HTMLInputElement');
       await act(async () => {
         setter.call(input, value);
         input.dispatchEvent(new win.Event('input', { bubbles: true }));
@@ -107,9 +112,14 @@ export function makeContext({ act, win, host, fixture }) {
     /** Resolve an IDREF attribute to the element it names. */
     target(el, attribute) {
       const id = el.getAttribute(attribute);
-      if (!id) fail(`${describe(el)} has no ${attribute}`);
+      if (!id) fail('REF-ABSENT', `${describe(el)} has no ${attribute}`);
       const found = doc.getElementById(id.split(/\s+/)[0]);
-      if (!found) fail(`${attribute} on ${describe(el)} names ${id}, which is not in the document`);
+      if (!found) {
+        fail(
+          'REF-DANGLING',
+          `${attribute} on ${describe(el)} names ${id}, which is not in the document`,
+        );
+      }
       return found;
     },
 

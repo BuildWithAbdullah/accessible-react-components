@@ -33,17 +33,20 @@ export default [
       const button = ctx.q(ctx.fixture.trigger, 'the menu button');
       if (button.getAttribute('aria-haspopup') !== 'menu') {
         ctx.fail(
+          'MNU-NO-HASPOPUP',
           `the button reports aria-haspopup=${button.getAttribute('aria-haspopup') ?? 'nothing at all'}`,
         );
       }
       if (button.getAttribute('aria-expanded') === null) {
-        ctx.fail('the button has no aria-expanded');
+        ctx.fail('MNU-NO-EXPANDED', 'the button has no aria-expanded');
       }
       await ctx.click(button);
       const menu = ctx.qa('[role="menu"]').filter(exposed)[0];
-      if (!menu) ctx.fail('opening produced no exposed element with role="menu"');
+      if (!menu) ctx.fail('MNU-NO-MENU-ROLE', 'opening produced no exposed element with role="menu"');
       const entries = items(ctx);
-      if (entries.length === 0) ctx.fail('the menu contains no element with role="menuitem"');
+      if (entries.length === 0) {
+        ctx.fail('MNU-NO-MENUITEMS', 'the menu contains no element with role="menuitem"');
+      }
     },
   },
   {
@@ -58,9 +61,14 @@ export default [
       await ctx.focus(button);
       await ctx.press(button, 'ArrowDown');
       const entries = items(ctx);
-      if (entries.length === 0) ctx.fail('ArrowDown on the button opened no menu items');
+      if (entries.length === 0) {
+        ctx.fail('MNU-ARROWDOWN-DOES-NOT-OPEN', 'ArrowDown on the button opened no menu items');
+      }
       if (ctx.active() !== entries[0]) {
-        ctx.fail(`ArrowDown left focus on ${ctx.describe(ctx.active())}, not on the first item`);
+        ctx.fail(
+          'MNU-ARROWDOWN-DOES-NOT-FOCUS-FIRST',
+          `ArrowDown left focus on ${ctx.describe(ctx.active())}, not on the first item`,
+        );
       }
     },
   },
@@ -77,23 +85,30 @@ export default [
       await ctx.focus(button);
       await ctx.press(button, 'ArrowDown');
       let entries = items(ctx);
-      if (entries.length < 2) ctx.fail('a menu needs at least two items to test the arrow keys');
+      if (entries.length < 2) {
+        ctx.fail('STRUCT-PART-MISSING', 'a menu needs at least two items to test the arrow keys');
+      }
 
       await ctx.press(ctx.active(), 'ArrowDown');
       entries = items(ctx);
       if (ctx.active() !== entries[1]) {
-        ctx.fail(`ArrowDown inside the menu left focus on ${ctx.describe(ctx.active())}`);
+        ctx.fail(
+          'MNU-ARROW-DOES-NOT-MOVE-FOCUS',
+          `ArrowDown inside the menu left focus on ${ctx.describe(ctx.active())}`,
+        );
       }
 
       await ctx.press(ctx.active(), 'End');
       entries = items(ctx);
       if (ctx.active() !== entries[entries.length - 1]) {
-        ctx.fail('End did not move focus to the last item');
+        ctx.fail('MNU-END-DOES-NOT-REACH-LAST', 'End did not move focus to the last item');
       }
 
       await ctx.press(ctx.active(), 'Home');
       entries = items(ctx);
-      if (ctx.active() !== entries[0]) ctx.fail('Home did not move focus to the first item');
+      if (ctx.active() !== entries[0]) {
+        ctx.fail('MNU-HOME-DOES-NOT-REACH-FIRST', 'Home did not move focus to the first item');
+      }
     },
   },
   {
@@ -107,11 +122,18 @@ export default [
       const button = ctx.q(ctx.fixture.trigger, 'the menu button');
       await ctx.focus(button);
       await ctx.press(button, 'ArrowDown');
-      if (items(ctx).length === 0) ctx.fail('ArrowDown on the button opened no menu');
+      if (items(ctx).length === 0) {
+        ctx.fail('MNU-ARROWDOWN-DOES-NOT-OPEN', 'ArrowDown on the button opened no menu');
+      }
       await ctx.press(ctx.active(), 'Escape');
-      if (items(ctx).length > 0) ctx.fail('Escape did not close the menu');
+      if (items(ctx).length > 0) {
+        ctx.fail('MNU-ESCAPE-DOES-NOT-CLOSE', 'Escape did not close the menu');
+      }
       if (ctx.active() !== button) {
-        ctx.fail(`after Escape, focus is on ${ctx.describe(ctx.active())} rather than the button`);
+        ctx.fail(
+          'MNU-ESCAPE-DOES-NOT-RETURN-FOCUS',
+          `after Escape, focus is on ${ctx.describe(ctx.active())} rather than the button`,
+        );
       }
     },
   },
@@ -126,9 +148,13 @@ export default [
       const button = ctx.q(ctx.fixture.trigger, 'the menu button');
       await ctx.focus(button);
       await ctx.press(button, 'ArrowDown');
-      if (items(ctx).length === 0) ctx.fail('ArrowDown on the button opened no menu');
+      if (items(ctx).length === 0) {
+        ctx.fail('MNU-ARROWDOWN-DOES-NOT-OPEN', 'ArrowDown on the button opened no menu');
+      }
       await ctx.press(ctx.active(), 'Tab');
-      if (items(ctx).length > 0) ctx.fail('Tab left the menu open');
+      if (items(ctx).length > 0) {
+        ctx.fail('MNU-TAB-LEAVES-MENU-OPEN', 'Tab left the menu open');
+      }
     },
   },
   {
@@ -142,18 +168,25 @@ export default [
     async run(ctx) {
       const button = ctx.q(ctx.fixture.trigger, 'the menu button');
       const letter = ctx.fixture.typeahead;
-      if (!letter) ctx.fail('this fixture declares no typeahead letter to test');
+      if (!letter) {
+        ctx.fail('STRUCT-PART-MISSING', 'this fixture declares no typeahead letter to test');
+      }
       await ctx.focus(button);
       await ctx.press(button, 'ArrowDown');
       const entries = items(ctx);
-      if (entries.length === 0) ctx.fail('ArrowDown on the button opened no menu');
+      if (entries.length === 0) {
+        ctx.fail('MNU-ARROWDOWN-DOES-NOT-OPEN', 'ArrowDown on the button opened no menu');
+      }
       const expected = entries.findIndex((item, index) =>
         index > 0 && item.textContent.trim().toLowerCase().startsWith(letter.toLowerCase()),
       );
-      if (expected === -1) ctx.fail(`no item after the first starts with "${letter}"`);
+      if (expected === -1) {
+        ctx.fail('STRUCT-PART-MISSING', `no item after the first starts with "${letter}"`);
+      }
       await ctx.press(ctx.active(), letter);
       if (ctx.active() !== items(ctx)[expected]) {
         ctx.fail(
+          'MNU-TYPEAHEAD-DOES-NOT-JUMP',
           `typing "${letter}" left focus on ${ctx.describe(ctx.active())} rather than on item ${expected}`,
         );
       }

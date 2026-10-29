@@ -45,8 +45,14 @@ export function accessibleName(el) {
   const title = el.getAttribute('title');
   if (title && title.trim()) return title.trim();
 
-  const img = el.querySelector('img[alt]');
-  if (img) {
+  // The alt text of an image only contributes to the name if the image is
+  // itself exposed. An earlier version of this read any img[alt] in the
+  // subtree, which reported a name for the one case this module exists to get
+  // right: an icon button whose glyph is hidden from assistive technology.
+  // With a span glyph it was correct, because visibleText filters those, and
+  // with an img glyph it was wrong. See docs/04-defects.md.
+  for (const img of el.querySelectorAll('img[alt]')) {
+    if (!isExposedWithin(img, el)) continue;
     const alt = img.getAttribute('alt');
     if (alt && alt.trim()) return alt.trim();
   }
@@ -67,4 +73,17 @@ function visibleText(node) {
     out += visibleText(child);
   }
   return out.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Whether a node is exposed, checking every ancestor up to and including the
+ * element the name is being computed for.
+ */
+function isExposedWithin(node, root) {
+  for (let el = node; el; el = el.parentElement) {
+    if (el.getAttribute('aria-hidden') === 'true') return false;
+    if (el.hasAttribute('hidden')) return false;
+    if (el === root) return true;
+  }
+  return true;
 }

@@ -17,7 +17,10 @@ export default [
     async run(ctx) {
       const before = regions(ctx);
       if (before.length === 0) {
-        ctx.fail('there is no live region in the document before any message is produced');
+        ctx.fail(
+          'TST-NO-REGION-BEFORE-MESSAGE',
+          'there is no live region in the document before any message is produced',
+        );
       }
     },
   },
@@ -32,13 +35,16 @@ export default [
     doesNotProve: 'That the wording of the message is any use.',
     async run(ctx) {
       const before = regions(ctx);
-      if (before.length === 0) ctx.fail('there is no live region to put a message into');
+      if (before.length === 0) {
+        ctx.fail('TST-NO-REGION-BEFORE-MESSAGE', 'there is no live region to put a message into');
+      }
       await ctx.click(ctx.trigger());
       const expected = ctx.fixture.message;
       const landed = before.find((region) => region.textContent.includes(expected));
       if (!landed) {
         const anywhere = ctx.host.textContent.includes(expected);
         ctx.fail(
+          anywhere ? 'TST-MESSAGE-IN-A-NEW-REGION' : 'TST-MESSAGE-NEVER-APPEARED',
           anywhere
             ? `the message "${expected}" is on the page but not inside a region that already existed`
             : `the message "${expected}" did not appear at all`,
@@ -60,7 +66,10 @@ export default [
       await ctx.focus(trigger);
       await ctx.click(trigger);
       if (ctx.active() !== trigger) {
-        ctx.fail(`producing a message moved focus to ${ctx.describe(ctx.active())}`);
+        ctx.fail(
+          'TST-STEALS-FOCUS',
+          `producing a message moved focus to ${ctx.describe(ctx.active())}`,
+        );
       }
     },
   },
@@ -78,12 +87,59 @@ export default [
       await ctx.click(ctx.trigger());
       const expected = ctx.fixture.message;
       const holder = regions(ctx).find((region) => region.textContent.includes(expected));
-      if (!holder) ctx.fail(`the message "${expected}" is not inside a live region`);
+      if (!holder) {
+        ctx.fail(
+          'TST-MESSAGE-NOT-IN-A-LIVE-REGION',
+          `the message "${expected}" is not inside a live region`,
+        );
+      }
       const live = holder.getAttribute('aria-live');
       const role = holder.getAttribute('role');
       if (live === 'assertive' || role === 'alert') {
         ctx.fail(
+          'TST-CONFIRMATION-IS-ASSERTIVE',
           `the confirmation sits in a region with role=${role ?? 'none'} and aria-live=${live ?? 'none'}, which interrupts`,
+        );
+      }
+    },
+  },
+  {
+    id: 'toast-region-does-not-re-read-itself',
+    component: 'toast',
+    pattern: PATTERN,
+    requirement:
+      'The region that collects messages does not carry aria-atomic="true". Each message is its own atomic unit.',
+    proves:
+      'Adding a second message announces the second message, rather than re-reading everything in the region. The region is identified as accumulating by the message sitting inside an element within it rather than being the region\'s own text.',
+    doesNotProve:
+      'That the announcement is well composed. It also cannot see a region that happens to hold one message today and will hold several tomorrow, because the shape of the DOM is all there is to go on.',
+    async run(ctx) {
+      await ctx.click(ctx.trigger());
+      const expected = ctx.fixture.message;
+      const holder = regions(ctx).find((region) => region.textContent.includes(expected));
+      if (!holder) {
+        ctx.fail(
+          'TST-MESSAGE-NOT-IN-A-LIVE-REGION',
+          `the message "${expected}" is not inside a live region`,
+        );
+      }
+      if (holder.getAttribute('aria-atomic') !== 'true') return;
+
+      // The region is atomic. That is only correct when the region is the
+      // message, so find the innermost element inside it that still holds the
+      // text and fail if it is something other than the region itself.
+      let innermost = holder;
+      for (;;) {
+        const next = Array.from(innermost.children).find((child) =>
+          child.textContent.includes(expected),
+        );
+        if (!next) break;
+        innermost = next;
+      }
+      if (innermost !== holder) {
+        ctx.fail(
+          'TST-ATOMIC-ON-AN-ACCUMULATING-REGION',
+          `the region carries aria-atomic="true" and the message sits inside ${ctx.describe(innermost)} within it, so every later message re-reads this one`,
         );
       }
     },
@@ -100,10 +156,13 @@ export default [
       await ctx.click(ctx.trigger());
       const control = ctx.q(ctx.fixture.dismiss, 'the dismiss control');
       if (control.tagName !== 'BUTTON') {
-        ctx.fail(`the dismiss control is ${ctx.describe(control)}, not a button`);
+        ctx.fail(
+          'TST-DISMISS-NOT-A-BUTTON',
+          `the dismiss control is ${ctx.describe(control)}, not a button`,
+        );
       }
       const name = ctx.name(control);
-      if (!name) ctx.fail('the dismiss control has no accessible name');
+      if (!name) ctx.fail('NAME-ABSENT', 'the dismiss control has no accessible name');
     },
   },
   {
@@ -114,16 +173,17 @@ export default [
     proves:
       'Someone reading at their own pace, or arriving at the region a moment later, still finds the message. A timed removal is a time limit on reading, and WCAG 2.2.1 has no exception that covers a four second toast.',
     doesNotProve:
-      'That an auto dismissing toast is always a failure. It is acceptable when the same information remains available elsewhere, which this audit cannot see.',
+      'That there is no timer. It waits for the window the pair declares in timerWindowMs and no longer, so a toast whose timer is longer than that window passes this audit. A suite cannot sit for four seconds per example, and the pair therefore declares both a short window and a component configured to match it. LIMIT-TIMER-WINDOW states this and test/limits.test.mjs asserts it in both directions. It also does not prove that an auto dismissing toast is always a failure: it is acceptable when the same information stays available elsewhere, which this audit cannot see.',
     async run(ctx) {
       await ctx.click(ctx.trigger());
       const expected = ctx.fixture.message;
       if (!ctx.host.textContent.includes(expected)) {
-        ctx.fail(`the message "${expected}" never appeared`);
+        ctx.fail('TST-MESSAGE-NEVER-APPEARED', `the message "${expected}" never appeared`);
       }
       await ctx.wait(ctx.fixture.timerWindowMs ?? 120);
       if (!ctx.host.textContent.includes(expected)) {
         ctx.fail(
+          'TST-REMOVED-ON-A-TIMER',
           `the message was removed on its own within ${ctx.fixture.timerWindowMs ?? 120}ms, with no user action`,
         );
       }

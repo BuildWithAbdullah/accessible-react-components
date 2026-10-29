@@ -16,13 +16,22 @@ export default [
     doesNotProve: 'That the tabs are in a sensible order, or that the labels mean anything.',
     async run(ctx) {
       const items = ctx.qa(ctx.fixture.items);
-      if (items.length === 0) ctx.fail(`no tab strip items match ${ctx.fixture.items}`);
-      if (!ctx.maybe('[role="tablist"]')) ctx.fail('there is no element with role="tablist"');
+      if (items.length === 0) {
+        ctx.fail('STRUCT-PART-MISSING', `no tab strip items match ${ctx.fixture.items}`);
+      }
+      if (!ctx.maybe('[role="tablist"]')) {
+        ctx.fail('TAB-NO-TABLIST', 'there is no element with role="tablist"');
+      }
       const tabs = ctx.qa('[role="tab"]');
       if (tabs.length !== items.length) {
-        ctx.fail(`${items.length} strip item(s) are rendered but ${tabs.length} carry role="tab"`);
+        ctx.fail(
+          'TAB-ITEMS-NOT-TABS',
+          `${items.length} strip item(s) are rendered but ${tabs.length} carry role="tab"`,
+        );
       }
-      if (!ctx.maybe('[role="tabpanel"]')) ctx.fail('there is no element with role="tabpanel"');
+      if (!ctx.maybe('[role="tabpanel"]')) {
+        ctx.fail('TAB-NO-TABPANEL', 'there is no element with role="tabpanel"');
+      }
     },
   },
   {
@@ -37,8 +46,17 @@ export default [
     async run(ctx) {
       const list = ctx.maybe('[role="tablist"]') ?? ctx.q(ctx.fixture.list, 'the tab strip');
       const stops = tabbables(list);
-      if (stops.length !== 1) {
-        ctx.fail(`the tab strip holds ${stops.length} tab stops, and the pattern allows exactly one`);
+      if (stops.length === 0) {
+        ctx.fail(
+          'TAB-NO-TAB-STOP',
+          'the tab strip holds no tab stop at all, so it cannot be reached from the keyboard',
+        );
+      }
+      if (stops.length > 1) {
+        ctx.fail(
+          'TAB-MULTIPLE-TAB-STOPS',
+          `the tab strip holds ${stops.length} tab stops, and the pattern allows exactly one`,
+        );
       }
     },
   },
@@ -53,26 +71,36 @@ export default [
       'That automatic activation is the right choice here. Manual activation, where arrows move focus and Enter selects, is correct when showing a panel is expensive. See docs/02-patterns.md.',
     async run(ctx) {
       const items = ctx.qa(ctx.fixture.items);
-      if (items.length < 2) ctx.fail('a tab strip needs at least two tabs to test the arrow keys');
+      if (items.length < 2) {
+        ctx.fail('STRUCT-PART-MISSING', 'a tab strip needs at least two tabs to test the arrow keys');
+      }
       const start = selectedIndex(items);
       if (start === -1) {
-        ctx.fail('no strip item carries aria-selected="true", so selection is not exposed at all');
+        ctx.fail(
+          'TAB-SELECTION-NOT-EXPOSED',
+          'no strip item carries aria-selected="true", so selection is not exposed at all',
+        );
       }
       await ctx.focus(items[start]);
       await ctx.press(items[start], 'ArrowRight');
 
       const after = ctx.qa(ctx.fixture.items);
       const moved = selectedIndex(after);
-      if (moved === start) ctx.fail('ArrowRight did not move the selected tab');
+      if (moved === start) {
+        ctx.fail('TAB-ARROW-DOES-NOT-MOVE-SELECTION', 'ArrowRight did not move the selected tab');
+      }
       if (ctx.active() !== after[moved]) {
         ctx.fail(
+          'TAB-FOCUS-DOES-NOT-FOLLOW-SELECTION',
           `ArrowRight selected tab ${moved} but left focus on ${ctx.describe(ctx.active())}`,
         );
       }
 
       await ctx.press(after[moved], 'ArrowLeft');
       const back = selectedIndex(ctx.qa(ctx.fixture.items));
-      if (back !== start) ctx.fail('ArrowLeft did not move the selection back');
+      if (back !== start) {
+        ctx.fail('TAB-ARROW-DOES-NOT-RETURN', 'ArrowLeft did not move the selection back');
+      }
     },
   },
   {
@@ -84,20 +112,29 @@ export default [
     doesNotProve: 'Anything about a vertical tab list, where the arrow keys change but Home and End do not.',
     async run(ctx) {
       const items = ctx.qa(ctx.fixture.items);
-      if (items.length < 2) ctx.fail('a tab strip needs at least two tabs to test Home and End');
+      if (items.length < 2) {
+        ctx.fail('STRUCT-PART-MISSING', 'a tab strip needs at least two tabs to test Home and End');
+      }
       if (selectedIndex(items) === -1) {
-        ctx.fail('no strip item carries aria-selected="true", so selection is not exposed at all');
+        ctx.fail(
+          'TAB-SELECTION-NOT-EXPOSED',
+          'no strip item carries aria-selected="true", so selection is not exposed at all',
+        );
       }
 
       await ctx.focus(items[0]);
       await ctx.press(items[0], 'End');
       const atEnd = selectedIndex(ctx.qa(ctx.fixture.items));
-      if (atEnd !== items.length - 1) ctx.fail(`End selected tab ${atEnd}, not the last one`);
+      if (atEnd !== items.length - 1) {
+        ctx.fail('TAB-END-DOES-NOT-SELECT-LAST', `End selected tab ${atEnd}, not the last one`);
+      }
 
       const nowSelected = ctx.qa(ctx.fixture.items)[atEnd];
       await ctx.press(nowSelected, 'Home');
       const atStart = selectedIndex(ctx.qa(ctx.fixture.items));
-      if (atStart !== 0) ctx.fail(`Home selected tab ${atStart}, not the first one`);
+      if (atStart !== 0) {
+        ctx.fail('TAB-HOME-DOES-NOT-SELECT-FIRST', `Home selected tab ${atStart}, not the first one`);
+      }
     },
   },
   {
@@ -113,14 +150,23 @@ export default [
       const panel = ctx.q('[role="tabpanel"]', 'the tab panel');
       const owner = ctx.target(panel, 'aria-labelledby');
       if (owner.getAttribute('role') !== 'tab') {
-        ctx.fail(`the panel is labelled by ${ctx.describe(owner)}, which is not a tab`);
+        ctx.fail(
+          'TAB-PANEL-LABELLED-BY-NON-TAB',
+          `the panel is labelled by ${ctx.describe(owner)}, which is not a tab`,
+        );
       }
       if (owner.getAttribute('aria-selected') !== 'true') {
-        ctx.fail('the panel is labelled by a tab that is not the selected one');
+        ctx.fail(
+          'TAB-PANEL-LABELLED-BY-WRONG-TAB',
+          'the panel is labelled by a tab that is not the selected one',
+        );
       }
       const controlled = ctx.target(owner, 'aria-controls');
       if (controlled !== panel) {
-        ctx.fail('the selected tab aria-controls something other than the visible panel');
+        ctx.fail(
+          'TAB-TAB-CONTROLS-WRONG-PANEL',
+          'the selected tab aria-controls something other than the visible panel',
+        );
       }
     },
   },

@@ -12,14 +12,19 @@ export default [
     async run(ctx) {
       const input = ctx.q(ctx.fixture.input, 'the combobox input');
       if (input.getAttribute('role') !== 'combobox') {
-        ctx.fail(`the input carries role=${input.getAttribute('role') ?? 'nothing'}`);
+        ctx.fail(
+          'CMB-INPUT-NOT-COMBOBOX',
+          `the input carries role=${input.getAttribute('role') ?? 'nothing'}`,
+        );
       }
-      if (!ctx.name(input)) ctx.fail('the combobox input has no accessible name');
+      if (!ctx.name(input)) ctx.fail('NAME-ABSENT', 'the combobox input has no accessible name');
       await ctx.type(input, 'a');
       const list = ctx.maybe('[role="listbox"]');
-      if (!list) ctx.fail('typing produced no element with role="listbox"');
+      if (!list) ctx.fail('CMB-NO-LISTBOX', 'typing produced no element with role="listbox"');
       const options = ctx.qa('[role="option"]');
-      if (options.length === 0) ctx.fail('the listbox contains no element with role="option"');
+      if (options.length === 0) {
+        ctx.fail('CMB-NO-OPTIONS', 'the listbox contains no element with role="option"');
+      }
     },
   },
   {
@@ -33,12 +38,14 @@ export default [
       const input = ctx.q(ctx.fixture.input, 'the combobox input');
       if (input.getAttribute('aria-expanded') !== 'false') {
         ctx.fail(
+          'CMB-CLOSED-STATE-NOT-EXPOSED',
           `before typing, the input reports aria-expanded=${input.getAttribute('aria-expanded') ?? 'nothing at all'}`,
         );
       }
       await ctx.type(input, 'a');
       if (input.getAttribute('aria-expanded') !== 'true') {
         ctx.fail(
+          'CMB-OPEN-STATE-NOT-EXPOSED',
           `with the list showing, the input reports aria-expanded=${input.getAttribute('aria-expanded') ?? 'nothing at all'}`,
         );
       }
@@ -59,17 +66,30 @@ export default [
       await ctx.type(input, 'a');
       await ctx.press(input, 'ArrowDown');
       const first = input.getAttribute('aria-activedescendant');
-      if (!first) ctx.fail('ArrowDown set no aria-activedescendant on the input');
+      if (!first) {
+        ctx.fail('CMB-NO-ACTIVEDESCENDANT', 'ArrowDown set no aria-activedescendant on the input');
+      }
       const firstOption = ctx.target(input, 'aria-activedescendant');
       if (firstOption.getAttribute('role') !== 'option') {
-        ctx.fail(`aria-activedescendant names ${ctx.describe(firstOption)}, which is not an option`);
+        ctx.fail(
+          'CMB-ACTIVEDESCENDANT-NOT-AN-OPTION',
+          `aria-activedescendant names ${ctx.describe(firstOption)}, which is not an option`,
+        );
       }
       if (firstOption.getAttribute('aria-selected') !== 'true') {
-        ctx.fail('the active option does not carry aria-selected="true"');
+        ctx.fail(
+          'CMB-ACTIVE-OPTION-NOT-SELECTED',
+          'the active option does not carry aria-selected="true"',
+        );
       }
       await ctx.press(input, 'ArrowDown');
       const second = input.getAttribute('aria-activedescendant');
-      if (second === first) ctx.fail('a second ArrowDown did not move the active option');
+      if (second === first) {
+        ctx.fail(
+          'CMB-ACTIVEDESCENDANT-DOES-NOT-ADVANCE',
+          'a second ArrowDown did not move the active option',
+        );
+      }
     },
   },
   {
@@ -86,11 +106,17 @@ export default [
       await ctx.type(input, 'a');
       await ctx.press(input, 'ArrowDown');
       if (!input.getAttribute('aria-activedescendant')) {
-        ctx.fail('ArrowDown did not open and walk the list, so there is nothing to conclude about focus');
+        ctx.fail(
+          'CMB-NO-ACTIVEDESCENDANT',
+          'ArrowDown did not open and walk the list, so there is nothing to conclude about focus',
+        );
       }
       await ctx.press(input, 'ArrowDown');
       if (ctx.active() !== input) {
-        ctx.fail(`walking the list moved focus to ${ctx.describe(ctx.active())}`);
+        ctx.fail(
+          'CMB-FOCUS-LEAVES-THE-INPUT',
+          `walking the list moved focus to ${ctx.describe(ctx.active())}`,
+        );
       }
     },
   },
@@ -106,14 +132,22 @@ export default [
       await ctx.type(input, 'a');
       await ctx.press(input, 'ArrowDown');
       const active = ctx.maybe('[role="option"][aria-selected="true"]');
-      if (!active) ctx.fail('ArrowDown highlighted no option, so Enter has nothing to commit');
+      if (!active) {
+        ctx.fail(
+          'CMB-ACTIVE-OPTION-NOT-SELECTED',
+          'ArrowDown highlighted no option, so Enter has nothing to commit',
+        );
+      }
       const expected = active.textContent.trim();
       await ctx.press(input, 'Enter');
       if (input.value !== expected) {
-        ctx.fail(`Enter left the field as "${input.value}" when the active option was "${expected}"`);
+        ctx.fail(
+          'CMB-ENTER-DOES-NOT-COMMIT',
+          `Enter left the field as "${input.value}" when the active option was "${expected}"`,
+        );
       }
       if (input.getAttribute('aria-expanded') === 'true') {
-        ctx.fail('the list is still reported as open after committing');
+        ctx.fail('CMB-LIST-STAYS-OPEN-AFTER-COMMIT', 'the list is still reported as open after committing');
       }
     },
   },
@@ -130,12 +164,17 @@ export default [
       await ctx.type(input, 'a');
       await ctx.press(input, 'ArrowDown');
       await ctx.press(input, 'Escape');
-      if (input.value !== 'a') ctx.fail(`Escape changed the field to "${input.value}"`);
+      if (input.value !== 'a') {
+        ctx.fail('CMB-ESCAPE-CLEARS-THE-FIELD', `Escape changed the field to "${input.value}"`);
+      }
       if (input.getAttribute('aria-expanded') !== 'false') {
-        ctx.fail('Escape did not close the list');
+        ctx.fail('CMB-ESCAPE-DOES-NOT-CLOSE', 'Escape did not close the list');
       }
       if (ctx.qa('[role="option"]').some((option) => isRendered(ctx, option))) {
-        ctx.fail('the options are still present and exposed after Escape');
+        ctx.fail(
+          'CMB-OPTIONS-STILL-EXPOSED-AFTER-ESCAPE',
+          'the options are still present and exposed after Escape',
+        );
       }
     },
   },
