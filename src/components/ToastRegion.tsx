@@ -13,6 +13,7 @@
  * What the pattern requires, and what this file is therefore on the hook for:
  *  - the live region in the document before the message goes into it
  *  - role and aria-live stated together, polite by default
+ *  - aria-atomic on each message and not on the region that collects them
  *  - the message delivered as a text change to that region
  *  - focus left exactly where the user had it
  *  - a dismiss control that is a button and has a name
@@ -21,7 +22,7 @@
  * to a toast interrupts whatever the user was typing and throws away their
  * place on the page, to deliver news they did not ask for.
  */
-import { liveRegionProps } from '../a11y/live.js';
+import { liveMessageProps, liveRegionProps } from '../a11y/live.js';
 import type { Urgency } from '../a11y/live.js';
 
 export interface ToastMessage {
@@ -49,12 +50,11 @@ export function ToastRegion({ messages, onDismiss, label = 'Notifications' }: To
         className={`arc-toast-region arc-toast-region-${urgency}`}
         role={props.role}
         aria-live={props['aria-live']}
-        aria-atomic={props['aria-atomic']}
         aria-label={urgency === 'alert' ? `${label}, urgent` : label}
         data-arc-toast-region={urgency}
       >
         {list.map((message) => (
-          <div key={message.id} className="arc-toast">
+          <div key={message.id} className="arc-toast" {...liveMessageProps()}>
             <span>{message.text}</span>
             {onDismiss ? (
               <button

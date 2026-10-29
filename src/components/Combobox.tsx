@@ -13,6 +13,7 @@
  *  - DOM focus staying on the input at all times, with the visual highlight
  *    carried by aria-activedescendant
  *  - Enter to commit, Escape to close without committing
+ *  - Home and End left to the text field, because the caret lives there
  *
  * The focus rule is the one that gets dropped. Moving DOM focus into the
  * option list breaks typing, because the keystrokes stop reaching the input.
@@ -77,9 +78,12 @@ export function Combobox({ label, options, onCommit }: ComboboxProps) {
       return;
     }
 
+    // homeAndEnd is false on purpose. Focus is in the text field, so Home
+    // and End are caret keys here and the list must not claim them.
     const moved = nextIndex(matches.length, active, event.key, {
       orientation: 'vertical',
       wrap: true,
+      homeAndEnd: false,
     });
     if (moved === null) return;
 
