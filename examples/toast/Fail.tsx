@@ -14,6 +14,9 @@
  *  - the dismiss control is a glyph with no accessible name
  *  - the message removes itself on a timer, so anyone reading at their own
  *    pace loses it
+ *  - aria-atomic sits on the region rather than on the message, copied in from
+ *    a snippet that only ever showed one, so a second notification re-reads
+ *    the first
  */
 import { useEffect, useRef, useState } from 'react';
 
@@ -39,8 +42,8 @@ export default function Example({ autoDismissMs = 2000 }: FailProps) {
         Save
       </button>
       {message !== null ? (
-        <div className="toast" role="alert" ref={toastRef} tabIndex={-1}>
-          {message}
+        <div className="toast" role="alert" aria-atomic="true" ref={toastRef} tabIndex={-1}>
+          <span>{message}</span>
           <button type="button" className="toast-close" onClick={() => setMessage(null)}>
             <span aria-hidden="true">x</span>
           </button>
