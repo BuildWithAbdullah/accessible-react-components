@@ -27,7 +27,7 @@ npm run verify    # the repository's own consistency checks
 | Constructed cases | 43, one for each finding the pairs cannot reach |
 | Limits | 5 declared limits, every one asserted in both directions |
 | Tests | 345 tests, counted by the test runner rather than by grepping the source |
-| Assertions | 581 repository assertions, checked by `npm run verify` |
+| Assertions | 582 repository assertions, checked by `npm run verify` |
 | Pure modules | 3, with no React and no DOM, unit tested on their own |
 | CI | Node 20.0.0 exactly, 22 and 24, plus five jobs that are not the tests |
 
