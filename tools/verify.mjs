@@ -322,6 +322,20 @@ assert(
   `package.json declares engines.node ${pkg.engines?.node} and the tested floor is ${FLOOR}`,
 );
 
+// The lockfile is tracked, and it carries its own copy of the engines field.
+// npm writes that copy at install time and `npm ci` never corrects it, so a
+// floor raised in package.json alone leaves the file a consumer's install
+// actually reads still promising the old one. Found on a fresh clone of the
+// published repository, where package.json said >=20.0.0 and the committed
+// lockfile still said >=18.18, and nothing in the suite or in CI objected.
+const lockEngines = exists('package-lock.json')
+  ? JSON.parse(read('package-lock.json')).packages?.['']?.engines?.node
+  : 'nothing, because package-lock.json is not tracked';
+assert(
+  lockEngines === `>=${FLOOR}`,
+  `the tracked package-lock.json declares engines.node ${lockEngines} and the tested floor is ${FLOOR}`,
+);
+
 const ci = exists('.github/workflows/ci.yml') ? read('.github/workflows/ci.yml') : '';
 assert(ci.includes('npm test'), 'the CI workflow does not run the tests');
 assert(ci.includes('npm run verify'), 'the CI workflow does not run this verifier');
