@@ -6,13 +6,16 @@
   "type": "module",
   "private": true,
   "engines": {
-    "node": ">=18.18"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test test/roving.test.mjs test/focusable.test.mjs test/live.test.mjs test/name.test.mjs test/dialog.test.mjs test/disclosure.test.mjs test/tabs.test.mjs test/combobox.test.mjs test/menu-button.test.mjs test/toast.test.mjs test/pairs.test.mjs",
+    "test": "npm run build && node --test test/roving.test.mjs test/focusable.test.mjs test/live.test.mjs test/name.test.mjs test/dialog.test.mjs test/disclosure.test.mjs test/tabs.test.mjs test/combobox.test.mjs test/menu-button.test.mjs test/toast.test.mjs test/pairs.test.mjs test/findings.test.mjs test/limits.test.mjs",
     "verify": "npm run build && node tools/verify.mjs",
-    "check": "npm test && npm run verify"
+    "check": "npm test && npm run verify && npm run verify:verdicts",
+    "verify:verdicts": "npm run build && node tools/audit-verdicts.mjs",
+    "count": "node tools/count-tests.mjs",
+    "tracked": "node tools/tracked.mjs"
   },
   "peerDependencies": {
     "react": ">=18",
