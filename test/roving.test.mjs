@@ -158,3 +158,41 @@ describe('typeaheadIndex', () => {
     assert.equal(typeaheadIndex(['Archive'], 0, 'a'), 0);
   });
 });
+
+describe('Home and End are the widget\'s keys only when it says so', () => {
+  /**
+   * They used to be returned unconditionally, to every caller. The combobox
+   * routes every key it does not handle itself through nextIndex and calls
+   * preventDefault on any non null result, so it was swallowing Home and End:
+   * two caret keys, in the one pattern whose whole point is that DOM focus
+   * stays in the text field and typing keeps working. See docs/04-defects.md.
+   */
+  it('are handled by default, which is right for tabs and menus', () => {
+    assert.equal(nextIndex(4, 2, 'Home'), 0);
+    assert.equal(nextIndex(4, 2, 'End'), 3);
+  });
+
+  it('are declined when the caller says they are not its keys', () => {
+    assert.equal(nextIndex(4, 2, 'Home', { homeAndEnd: false }), null);
+    assert.equal(nextIndex(4, 2, 'End', { homeAndEnd: false }), null);
+  });
+
+  it('and declining them changes nothing else', () => {
+    const keys = ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Enter', 'a'];
+    for (const orientation of ['horizontal', 'vertical']) {
+      for (const wrap of [true, false]) {
+        for (let count = 1; count <= 6; count += 1) {
+          for (let current = -1; current <= count; current += 1) {
+            for (const key of keys) {
+              assert.equal(
+                nextIndex(count, current, key, { orientation, wrap, homeAndEnd: false }),
+                nextIndex(count, current, key, { orientation, wrap }),
+                `${key} at ${current} of ${count} moved when homeAndEnd was turned off`,
+              );
+            }
+          }
+        }
+      }
+    }
+  });
+});

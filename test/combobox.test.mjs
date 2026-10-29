@@ -91,4 +91,39 @@ describe('combobox, beyond the audits', () => {
     assert.equal(ctx.q('[role="listbox"]').getAttribute('aria-label'), 'City');
     await unmount();
   });
+
+  /**
+   * Home and End are caret keys in a text field, and the field is where focus
+   * lives in this pattern. The component used to route them through the
+   * roving arithmetic, which returned a position for them whatever the
+   * caller, so both were swallowed with preventDefault and the list jumped
+   * instead. See docs/04-defects.md.
+   */
+  it('leaves Home and End to the text field rather than jumping the list', async () => {
+    for (const key of ['Home', 'End']) {
+      const { ctx, unmount, input } = await combobox();
+      await ctx.type(input, 'a');
+      const event = await ctx.press(input, key);
+      assert.equal(
+        event.defaultPrevented,
+        false,
+        `${key} was swallowed, so the caret cannot be moved in the field`,
+      );
+      assert.equal(
+        ctx.q(fixture.input).getAttribute('aria-activedescendant'),
+        null,
+        `${key} moved the active option, which is the list claiming a caret key`,
+      );
+      await unmount();
+    }
+  });
+
+  it('still lets the arrow keys walk the list', async () => {
+    const { ctx, unmount, input } = await combobox();
+    await ctx.type(input, 'a');
+    const event = await ctx.press(input, 'ArrowDown');
+    assert.equal(event.defaultPrevented, true);
+    assert.ok(ctx.q(fixture.input).getAttribute('aria-activedescendant'));
+    await unmount();
+  });
 });
