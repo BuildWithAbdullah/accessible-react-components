@@ -18,6 +18,18 @@ export interface RovingOptions {
   orientation?: Orientation;
   /** Whether moving past the last item returns to the first. Defaults to true. */
   wrap?: boolean;
+  /**
+   * Whether Home and End belong to this widget. Defaults to true, which is
+   * right for tabs, menus, radio groups and listboxes.
+   *
+   * It has to be false for a combobox, and that is not a detail. A combobox
+   * keeps DOM focus in the text field, which is the entire reason the pattern
+   * exists, and in a text field Home and End are editing keys that move the
+   * caret. A combobox that routes them here gets a non null result, calls
+   * preventDefault, and takes two keys off the user in the one pattern whose
+   * point is that typing keeps working. See docs/04-defects.md.
+   */
+  homeAndEnd?: boolean;
 }
 
 /**
@@ -40,6 +52,7 @@ export function nextIndex(
 
   const orientation: Orientation = options.orientation ?? 'horizontal';
   const wrap = options.wrap ?? true;
+  const homeAndEnd = options.homeAndEnd ?? true;
   const forward = orientation === 'horizontal' ? 'ArrowRight' : 'ArrowDown';
   const backward = orientation === 'horizontal' ? 'ArrowLeft' : 'ArrowUp';
 
@@ -47,8 +60,8 @@ export function nextIndex(
   // which is the state a menu is in before it opens.
   const from = current >= 0 && current < count ? current : -1;
 
-  if (key === 'Home') return 0;
-  if (key === 'End') return count - 1;
+  if (homeAndEnd && key === 'Home') return 0;
+  if (homeAndEnd && key === 'End') return count - 1;
 
   if (key === forward) {
     if (from === -1) return 0;
