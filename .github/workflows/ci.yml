@@ -8,25 +8,101 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Exact versions, not bare majors. actions/setup-node resolves '20' to the
+  # newest release of that line, so a job named '20' never runs the floor the
+  # engines field promises.
   test:
-    name: Node ${{ matrix.node }}
+    name: Tests on Node ${{ matrix.node }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node: ['18', '20', '22']
+        node: ['20.0.0', '22.23.4', '24.11.1']
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-
+      - run: node --version
       - name: Install
         run: npm install --no-audit --no-fund
-
       - name: Type check and test
         run: npm test
 
+  verify:
+    name: Repository verifier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.0.0'
+      - name: Install
+        run: npm install --no-audit --no-fund
       - name: Verify the repository
         run: npm run verify
+
+  verdicts:
+    name: Audit verdicts, out of process
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      - name: Check every verdict against the manifests
+        run: node tools/audit-verdicts.mjs
+
+  tracked:
+    name: The gitignore matcher agrees with git
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+      # tools/tracked.mjs decides which files the verifier counts, and a
+      # matcher that only agrees with itself proves nothing. git is the
+      # authority on what git tracks, so this compares the two directly.
+      # node, not npm run, because npm writes a banner to stdout.
+      - name: Compare against git ls-files
+        run: |
+          node tools/tracked.mjs | sort > /tmp/tracked.txt
+          git ls-files | sort > /tmp/git.txt
+          diff -u /tmp/git.txt /tmp/tracked.txt
+
+  engines:
+    name: The engines floor is installable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.0.0'
+      - name: Install with the engines field enforced
+        run: npm install --engine-strict --no-audit --no-fund
+
+  count:
+    name: The test count is readable on the newest line
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.11.1'
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      # Node 24 is where the reporter summary line changed, which is why the
+      # count comes from a reporter instead. node, not npm run, because npm
+      # writes a banner to stdout and this step reads stdout.
+      - name: Count the tests
+        run: |
+          COUNT=$(node tools/count-tests.mjs)
+          echo "tests: $COUNT"
+          test "$COUNT" -gt 300
